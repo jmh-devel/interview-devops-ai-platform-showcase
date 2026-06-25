@@ -45,3 +45,42 @@ Result: Support conversations shifted from "what changed on this machine?" to
 
 Lesson: Image pipelines are operational contracts, not just packaging tools.
 
+## Secure Image Diffing For A Leading Fintech Client
+
+Situation: A leading fintech client associated with one of the top four card
+networks needed stronger auditability around image-based delivery. Existing
+tooling could describe what was inside an image, but it did not clearly answer
+what changed from build to build in a way security, platform, and delivery teams
+could all use.
+
+Action: Built USIF-style image forensics and image diffing into the secure
+supply-chain workflow. The mechanism compared image contents across builds,
+surfaced package/configuration drift, and made image changes reviewable as part
+of the promotion process.
+
+Result: The client and CIQ adopted the approach as a missing auditability layer
+for secure image delivery. It improved confidence in image promotion because the
+conversation moved from "trust this image" to "review the exact delta."
+
+Lesson: Secure supply chains need change visibility, not just inventory. SBOMs
+are useful, but build-to-build diffing is what turns image promotion into an
+auditable engineering decision.
+
+## Ansys HPC Time-To-Ready Image Work
+
+Situation: Large HPC instances used for Ansys workloads had roughly 45-minute
+time-to-ready windows because critical NVIDIA and workload dependencies were
+prepared after launch.
+
+Action: Reworked the image strategy so the instances booted from baked,
+validated images using the same repositories and package sources already
+approved by the customer. The goal was not to invent a new stack; it was to move
+known-good setup work from runtime into the image build pipeline.
+
+Result: Time to ready dropped from roughly 45 minutes to under 1 minute on
+massive-scale HPC instances. At scale, that eliminated substantial idle compute
+waste and created a credible path to millions of dollars in avoided spend.
+
+Lesson: Image engineering is cost engineering. On expensive accelerator or HPC
+hardware, every minute of bootstrapping waste is multiplied by fleet size,
+instance price, and user wait time.

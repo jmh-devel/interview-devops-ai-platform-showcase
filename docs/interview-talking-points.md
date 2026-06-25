@@ -94,7 +94,7 @@ Strong angle:
 "I try not to win architecture arguments by volume. I try to make the tradeoffs
 explicit enough that the right answer becomes easier for the team to choose."
 
-### Visa and bootc Image Work
+### Secure Image Diffing For A Top-Card-Network Fintech Client
 
 For enterprise image work, especially bootc-style delivery, the important
 decision is to treat the OS image as a tested supply-chain artifact rather than
@@ -102,9 +102,40 @@ as a server someone manually fixed over time.
 
 Strong angle:
 
-"The image pipeline matters because it changes the support model. You are no
-longer asking what happened to this one machine; you are asking whether the
-image contract was correct, tested, and promoted through the right gates."
+"For a leading fintech client associated with one of the top four card networks,
+we had a gap that normal image inventory did not solve: they needed to know not
+just what was in an image, but what changed from build to build. I built an image
+forensics and diffing mechanism that CIQ and the client adopted as a missing
+auditability layer in the secure supply chain."
+
+Why it mattered:
+
+- SBOM-style inventory answers "what is present?"
+- Image diffing answers "what changed?"
+- Security and platform teams can review deltas instead of re-auditing an entire
+  artifact from scratch.
+- Promotion becomes evidence-driven instead of trust-driven.
+
+### Ansys HPC Time-To-Ready Reduction
+
+Ansys is a named example I can discuss directly. The problem was expensive HPC
+capacity sitting idle during post-launch setup. Instances needed NVIDIA and
+workload readiness work before users could do useful compute.
+
+Strong angle:
+
+"For Ansys, I helped move the setup work into baked, validated images using the
+same repositories and approved package sources they were already using. That
+dropped massive-scale HPC instance time-to-ready from roughly 45 minutes to
+under 1 minute. At their scale, that is not just a convenience improvement; it
+is potentially millions of dollars in avoided idle compute waste."
+
+Why it mattered:
+
+- Existing approved sources were preserved, reducing process friction.
+- Runtime bootstrap moved into controlled image build validation.
+- Users reached productive compute faster.
+- The cost win scaled with instance count and accelerator/HPC hourly cost.
 
 ## Questions To Ask Them
 
@@ -122,4 +153,3 @@ image contract was correct, tested, and promoted through the right gates."
 I will not expose live client systems, credentials, private infrastructure
 coordinates, or unpublished benchmark methodology over screen share. That is the
 same boundary I would protect for your clients."
-

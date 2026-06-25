@@ -37,11 +37,11 @@
 6. `docs/interview-talking-points.md`
    - CIQ leadership.
    - Platform conflict handling.
-   - Visa/bootc image framing.
+   - Secure fintech image diffing.
+   - Ansys HPC time-to-ready reduction.
 
 ## If Pressed For Live Code
 
 "This is the code I prepared to share. The live systems contain customer,
 infrastructure, and proprietary details. I can go deeper on the decisions, but I
 will not expose those systems in an interview screen share."
-
