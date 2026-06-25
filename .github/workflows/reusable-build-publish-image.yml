@@ -1,0 +1,90 @@
+name: Reusable Build And Publish Image
+
+on:
+  workflow_call:
+    inputs:
+      image_repository:
+        description: Fully qualified container repository URI
+        required: true
+        type: string
+      dockerfile:
+        description: Dockerfile path
+        required: true
+        type: string
+      context:
+        description: Build context path
+        required: false
+        type: string
+        default: .
+      publish_latest_on_default:
+        description: Publish mutable latest only on the default branch
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      image_tag:
+        description: Immutable image tag
+        value: ${{ jobs.build.outputs.image_tag }}
+      image_digest:
+        description: Published image digest
+        value: ${{ jobs.build.outputs.image_digest }}
+      image_ref:
+        description: Immutable digest image reference
+        value: ${{ jobs.build.outputs.image_ref }}
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      image_digest: ${{ steps.build.outputs.digest }}
+      image_ref: ${{ format('{0}@{1}', inputs.image_repository, steps.build.outputs.digest) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure cloud credentials via OIDC
+        run: |
+          set -euo pipefail
+          echo "Use workload identity/OIDC here instead of long-lived static keys."
+
+      - name: Prepare immutable tags
+        id: meta
+        env:
+          IMAGE_REPOSITORY: ${{ inputs.image_repository }}
+          PUBLISH_LATEST_ON_DEFAULT: ${{ inputs.publish_latest_on_default }}
+        run: |
+          set -euo pipefail
+          image_tag="sha-${GITHUB_SHA}"
+          tags="${IMAGE_REPOSITORY}:${image_tag}"
+          if [[ "${PUBLISH_LATEST_ON_DEFAULT}" == "true" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            tags+=$'\n'"${IMAGE_REPOSITORY}:latest"
+          fi
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "${tags}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Show immutable image reference
+        run: |
+          echo "image_tag=${{ steps.meta.outputs.image_tag }}"
+          echo "image_digest=${{ steps.build.outputs.digest }}"
+          echo "image_ref=${{ inputs.image_repository }}@${{ steps.build.outputs.digest }}"
+

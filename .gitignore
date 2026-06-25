@@ -1,0 +1,16 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.pem
+*.key
+*.kubeconfig
+kubeconfig*
+build-logs/
+raw/
+raw-diagnostics*
+*.tar.gz
+*.zip
+.env
+.env.*
+

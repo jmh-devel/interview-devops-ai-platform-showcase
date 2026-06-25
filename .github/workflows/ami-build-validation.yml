@@ -1,0 +1,72 @@
+name: AMI Build And Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_image_family:
+        description: Base image family to validate
+        required: false
+        default: rocky-linux-9
+      force_rebuild:
+        description: Force rebuild even when a recent tested image exists
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 2 * * 0"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  check-upstream:
+    name: Check Upstream Image Freshness
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+
+    steps:
+      - name: Query latest upstream image
+        id: check
+        run: |
+          set -euo pipefail
+          echo "Compare latest upstream image date against last tested marketplace candidate."
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
+
+  build-and-test:
+    name: Build Candidate And Run Validation
+    runs-on: ubuntu-latest
+    needs: check-upstream
+    if: needs.check-upstream.outputs.should_build == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure cloud credentials via OIDC
+        run: |
+          set -euo pipefail
+          echo "Assume a constrained build role using OIDC."
+
+      - name: Validate image template
+        run: |
+          set -euo pipefail
+          echo "Validate Packer/Image Builder template and required variables."
+
+      - name: Build candidate AMI
+        id: build
+        run: |
+          set -euo pipefail
+          echo "ami_id=ami-00000000000000000" >> "$GITHUB_OUTPUT"
+
+      - name: Run boot and platform validation
+        run: |
+          set -euo pipefail
+          scripts/validate-ami-candidate.sh "${{ steps.build.outputs.ami_id }}"
+
+      - name: Publish promotion metadata
+        if: success()
+        run: |
+          set -euo pipefail
+          echo "Tag candidate as tested and emit marketplace promotion metadata."
+
