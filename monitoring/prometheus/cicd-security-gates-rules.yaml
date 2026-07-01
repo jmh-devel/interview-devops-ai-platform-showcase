@@ -1,0 +1,150 @@
+groups:
+  - name: cicd-kpi-recording.rules
+    interval: 1m
+    rules:
+      - record: cicd:build_success_rate:ratio_1h
+        expr: |
+          sum by (repository) (increase(cicd_builds_total{status="success"}[1h]))
+          /
+          clamp_min(sum by (repository) (increase(cicd_builds_total[1h])), 1)
+
+      - record: cicd:security_gate_pass_rate:ratio_1h
+        expr: |
+          sum by (repository) (increase(cicd_security_gate_checks_total{status="pass"}[1h]))
+          /
+          clamp_min(sum by (repository) (increase(cicd_security_gate_checks_total[1h])), 1)
+
+      - record: cicd:release_validation_pass_rate:ratio_1h
+        expr: |
+          sum by (repository, environment) (increase(cicd_deployment_validation_total{status="pass"}[1h]))
+          /
+          clamp_min(sum by (repository, environment) (increase(cicd_deployment_validation_total[1h])), 1)
+
+      - record: cicd:deployment_frequency:count_24h
+        expr: |
+          sum by (repository, environment) (increase(cicd_releases_total{status="success"}[24h]))
+
+      - record: cicd:lead_time_seconds:p95_2h
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (repository, le) (rate(cicd_lead_time_seconds_bucket[2h]))
+          )
+
+      - record: cicd:build_duration_seconds:p95_2h
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (repository, workflow, le) (rate(cicd_build_duration_seconds_bucket[2h]))
+          )
+
+  - name: cicd-security-gates.alerts
+    interval: 1m
+    rules:
+      - alert: CICDBuildFailureRateHigh
+        expr: (1 - cicd:build_success_rate:ratio_1h) > 0.20
+        for: 20m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "CI build failure rate is high for {{ $labels.repository }}"
+          description: "More than 20% of CI builds failed over the last hour. Review failing workflow runs before promoting a release."
+
+      - alert: CICDSecurityGateFailure
+        expr: |
+          sum by (repository, workflow, gate) (
+            increase(cicd_security_gate_checks_total{status="fail"}[15m])
+          ) > 0
+        for: 0m
+        labels:
+          severity: high
+          team: security
+        annotations:
+          summary: "Security gate failed in {{ $labels.repository }}"
+          description: "Gate {{ $labels.gate }} failed in workflow {{ $labels.workflow }}. Block release promotion until reviewed or explicitly waived."
+
+      - alert: CICDCriticalContainerVulnerability
+        expr: |
+          sum by (repository, image) (
+            cicd_container_vulnerabilities{severity="critical"}
+          ) > 0
+        for: 5m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Critical container vulnerability found for {{ $labels.repository }}"
+          description: "Image {{ $labels.image }} has at least one critical vulnerability. Treat the image as non-promotable until triaged."
+
+      - alert: CICDIaCPolicyViolation
+        expr: |
+          sum by (repository, tool, severity) (
+            increase(cicd_iac_policy_violations_total[15m])
+          ) > 0
+        for: 0m
+        labels:
+          severity: high
+          team: platform
+        annotations:
+          summary: "IaC policy violation found in {{ $labels.repository }}"
+          description: "{{ $labels.tool }} reported {{ $labels.severity }} IaC policy violations. Review Terraform/Kubernetes policy output before deployment."
+
+      - alert: CICDPostDeployValidationFailure
+        expr: |
+          sum by (repository, environment, service, check) (
+            increase(cicd_deployment_validation_total{status="fail"}[30m])
+          ) > 0
+        for: 0m
+        labels:
+          severity: high
+          team: platform
+        annotations:
+          summary: "Post-deploy validation failed for {{ $labels.service }}"
+          description: "Validation check {{ $labels.check }} failed in {{ $labels.environment }}. A release is not complete until monitoring-backed validation passes."
+
+      - alert: CICDReleaseRollbackDetected
+        expr: |
+          sum by (repository, environment, service) (
+            increase(cicd_release_rollbacks_total[30m])
+          ) > 0
+        for: 0m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Rollback detected for {{ $labels.service }}"
+          description: "A rollback occurred in {{ $labels.environment }}. Correlate with deployment events, failed checks, and recent commits."
+
+      - alert: CICDLeadTimeP95High
+        expr: cicd:lead_time_seconds:p95_2h > 7200
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "CI/CD lead time p95 is high for {{ $labels.repository }}"
+          description: "P95 lead time from change to validated release is above two hours. Review queue time, approval delay, build time, and validation time."
+
+      - alert: CICDNoRecentProductionDeploy
+        expr: |
+          sum by (repository) (
+            increase(cicd_releases_total{environment="prod",status="success"}[7d])
+          ) < 1
+        for: 12h
+        labels:
+          severity: info
+          team: platform
+        annotations:
+          summary: "No recent production deploys for {{ $labels.repository }}"
+          description: "No successful production deployments were observed in the last seven days. This may be expected for low-change services."
+
+      - alert: CICDMetricsAbsent
+        expr: absent(cicd_builds_total) == 1
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "CI/CD metrics are absent"
+          description: "No cicd_builds_total metric is being scraped. Check exporter, scrape target, or OpenTelemetry collector configuration."
