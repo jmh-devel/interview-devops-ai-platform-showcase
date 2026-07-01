@@ -30,21 +30,36 @@
    - Digest references.
    - Reusable workflow contract.
 
-5. `docs/monitoring-and-billing-loop.md`
+5. `docs/cicd-monitoring-dashboard.md`
+   - Concrete monitoring-as-code artifact.
+   - CI/CD KPIs: build success, lead time, deployment frequency, rollback rate.
+   - Security gate KPIs: secrets, IaC policy, container scan, dependency scan.
+   - Post-deploy validation as the release-complete signal.
+
+6. `monitoring/grafana/cicd-security-gates-dashboard.json`
+   - Grafana dashboard JSON checked into the repo.
+   - Shows dashboard-as-code rather than a live private dashboard.
+
+7. `monitoring/prometheus/cicd-security-gates-rules.yaml`
+   - Recording rules for delivery KPIs.
+   - Alerts for failed security gates, critical image findings, IaC violations,
+     rollback events, and failed post-deploy validation.
+
+8. `docs/monitoring-and-billing-loop.md`
    - Runtime validation through monitoring.
    - Grafana/Athena-style time evidence.
    - Generated billing artifacts from auditable activity signals.
    - Keep this as architecture and process; do not open live dashboards.
 
-6. `benchmarks/summary/model-benchmark-summary.md`
+9. `benchmarks/summary/model-benchmark-summary.md`
    - Explain open-source model benchmark classes.
    - Keep raw methodology and private results out of scope.
 
-7. `docs/interview-talking-points.md`
-   - CIQ leadership.
-   - Platform conflict handling.
-   - Secure fintech image diffing.
-   - Ansys HPC time-to-ready reduction.
+10. `docs/interview-talking-points.md`
+    - CIQ leadership.
+    - Platform conflict handling.
+    - Secure fintech image diffing.
+    - Ansys HPC time-to-ready reduction.
 
 ## If Pressed For Live Code
 
