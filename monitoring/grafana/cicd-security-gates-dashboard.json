@@ -1,0 +1,421 @@
+{
+  "uid": "cicd-security-gates",
+  "title": "CI/CD Security Gates and Release KPIs",
+  "description": "Screen-share-safe Grafana dashboard-as-code for CI/CD build health, release flow, security gates, IaC policy checks, rollback signals, and post-deploy validation.",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "tags": [
+    "cicd",
+    "devsecops",
+    "terraform",
+    "kubernetes",
+    "prometheus"
+  ],
+  "timezone": "browser",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "repository",
+        "label": "Repository",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(cicd_builds_total, repository)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(cicd_releases_total, environment)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Release events",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "enable": true,
+        "expr": "sum by (repository, environment) (changes(cicd_releases_total{repository=~\"$repository\",environment=~\"$environment\"}[5m])) > 0",
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "titleFormat": "Release event"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Build Success Rate",
+      "description": "Successful CI builds over the last hour.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(increase(cicd_builds_total{repository=~\"$repository\",status=\"success\"}[1h])) / clamp_min(sum(increase(cicd_builds_total{repository=~\"$repository\"}[1h])), 1)",
+          "legendFormat": "success %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Security Gate Pass Rate",
+      "description": "Secret scanning, IaC policy, dependency, container, and static-analysis gates.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(increase(cicd_security_gate_checks_total{repository=~\"$repository\",status=\"pass\"}[1h])) / clamp_min(sum(increase(cicd_security_gate_checks_total{repository=~\"$repository\"}[1h])), 1)",
+          "legendFormat": "gate pass %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Release Validation Pass Rate",
+      "description": "Post-deploy validation success rate; release is not complete until this passes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(increase(cicd_deployment_validation_total{repository=~\"$repository\",environment=~\"$environment\",status=\"pass\"}[1h])) / clamp_min(sum(increase(cicd_deployment_validation_total{repository=~\"$repository\",environment=~\"$environment\"}[1h])), 1)",
+          "legendFormat": "validation pass %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Successful Releases / 24h",
+      "description": "Deployment frequency for the selected repo/environment.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(cicd_releases_total{repository=~\"$repository\",environment=~\"$environment\",status=\"success\"}[24h]))",
+          "legendFormat": "releases"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Build Duration p95 by Workflow",
+      "description": "Detect slow builds and expensive quality gates.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(cicd_build_duration_seconds_bucket{repository=~\"$repository\"}[$__rate_interval])) by (le, workflow)) / 60",
+          "legendFormat": "{{workflow}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "min",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Lead Time For Changes p95",
+      "description": "Time from change to validated release.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(cicd_lead_time_seconds_bucket{repository=~\"$repository\"}[$__rate_interval])) by (le)) / 60",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "min",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Security Gate Failures by Gate",
+      "description": "Failures by gate: secrets, SAST, dependencies, container scan, IaC policy, Terraform validation.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(cicd_security_gate_checks_total{repository=~\"$repository\",status=\"fail\"}[$__range])) by (gate)",
+          "legendFormat": "{{gate}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "IaC Policy Violations",
+      "description": "Terraform/Kubernetes policy violations from Checkov, tfsec, OPA/Conftest, Kyverno, or equivalent.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 11,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(cicd_iac_policy_violations_total{repository=~\"$repository\"}[$__range])) by (tool, severity)",
+          "legendFormat": "{{tool}} {{severity}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Critical and High Container Findings",
+      "description": "Open critical/high findings on built images.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 11,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(cicd_container_vulnerabilities{repository=~\"$repository\",severity=~\"critical|high\"}) by (severity, image)",
+          "legendFormat": "{{severity}} {{image}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Post-Deploy Validation Failures",
+      "description": "Runtime validation failures after CD: readiness, target health, smoke checks, SLO checks.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(cicd_deployment_validation_total{repository=~\"$repository\",environment=~\"$environment\",status=\"fail\"}[$__range])) by (service, check)",
+          "legendFormat": "{{service}} {{check}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "Rollbacks by Service",
+      "description": "Rollback count by service/environment.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(cicd_release_rollbacks_total{repository=~\"$repository\",environment=~\"$environment\"}[$__range])) by (service, environment)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Latest Non-Success Workflow Runs",
+      "description": "Optional info metric for recent failed/canceled workflow runs.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 18,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, max by (repository, workflow, branch, conclusion) (cicd_workflow_run_info{repository=~\"$repository\",conclusion!=\"success\"}))",
+          "legendFormat": "{{repository}} {{workflow}} {{branch}} {{conclusion}}",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}
