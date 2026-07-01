@@ -18,6 +18,8 @@ directly to those themes:
 - Credentials are designed around OIDC/workload identity, not static keys.
 - Release artifacts are immutable where possible.
 - Deployment or AMI promotion requires validation, not optimism.
+- Monitoring and billing evidence are treated as reviewable artifacts, not
+  after-the-fact storytelling.
 - Benchmark summaries are separated from raw operational artifacts.
 
 ## What We Did And Why
@@ -67,6 +69,26 @@ Validation dimensions:
 The safe sharing boundary is to discuss open-source models, benchmark shape, and
 summary findings while withholding unpublished tuning methodology, private
 environment details, and raw logs.
+
+### Monitoring And Billing Evidence
+
+For consulting delivery, I like the same closed loop BiModal describes for
+Terraform and Kubernetes: codify, review, test, deploy, observe, and report.
+
+Strong angle:
+
+"Monitoring is the runtime truth. Git history and pull requests are the change
+truth. Billing should be derived from auditable activity signals, not from a
+Friday-afternoon memory exercise."
+
+What to emphasize:
+
+- Prometheus/Grafana/Loki style monitoring validates the deployed state.
+- Dashboards and alerts should be codified and reviewed like app code.
+- Time tracking can be treated as an evidence pipeline: activity signals, git
+  commits, issue references, generated summaries, and invoice artifacts.
+- This gives clients unusually precise billing because the invoice can be tied
+  back to work signals and delivered outcomes.
 
 ## Leadership Stories
 

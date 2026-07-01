@@ -30,11 +30,17 @@
    - Digest references.
    - Reusable workflow contract.
 
-5. `benchmarks/summary/model-benchmark-summary.md`
+5. `docs/monitoring-and-billing-loop.md`
+   - Runtime validation through monitoring.
+   - Grafana/Athena-style time evidence.
+   - Generated billing artifacts from auditable activity signals.
+   - Keep this as architecture and process; do not open live dashboards.
+
+6. `benchmarks/summary/model-benchmark-summary.md`
    - Explain open-source model benchmark classes.
    - Keep raw methodology and private results out of scope.
 
-6. `docs/interview-talking-points.md`
+7. `docs/interview-talking-points.md`
    - CIQ leadership.
    - Platform conflict handling.
    - Secure fintech image diffing.

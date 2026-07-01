@@ -14,6 +14,8 @@ proprietary implementation details.
   lab environments.
 - Benchmark reporting discipline for CPU, GPU, and AWS Inferentia-style model
   testing without leaking raw methodology or private infrastructure.
+- Monitoring-backed delivery evidence: Prometheus/Grafana/Loki style runtime
+  validation and generated billing artifacts from auditable work signals.
 - Consulting communication: explaining why choices were made, where tradeoffs
   were accepted, and what would be improved next.
 
@@ -25,8 +27,9 @@ Open these files in VS Code and keep the Explorer closed:
 2. `.github/workflows/ami-build-validation.yml`
 3. `.github/workflows/reusable-build-publish-image.yml`
 4. `terraform/modules/marketplace-ami-metadata/main.tf`
-5. `benchmarks/summary/model-benchmark-summary.md`
-6. `docs/interview-talking-points.md`
+5. `docs/monitoring-and-billing-loop.md`
+6. `benchmarks/summary/model-benchmark-summary.md`
+7. `docs/interview-talking-points.md`
 
 ## Boundary
 
@@ -45,4 +48,3 @@ but the operating decisions:
 - Why test AMIs before promotion?
 - Why separate benchmark results from raw infrastructure artifacts?
 - Why show sanitized examples rather than live client or company systems?
-
